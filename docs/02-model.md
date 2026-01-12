@@ -15,7 +15,6 @@ erDiagram
         VARCHAR owner_name
         BIGINT balance_won
         VARCHAR status
-        BIGINT version
         DATETIME created_at
         DATETIME updated_at
     }
@@ -35,7 +34,6 @@ erDiagram
         DATE usage_date PK
         BIGINT withdrawal_total_won
         BIGINT transfer_total_won
-        BIGINT version
     }
 ```
 
@@ -52,7 +50,6 @@ erDiagram
 | owner_name | VARCHAR(50) | NOT NULL | 소유자명 |
 | balance_won | BIGINT | NOT NULL, DEFAULT 0 | 잔액(원) |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'ACTIVE' | ACTIVE / DELETED |
-| version | BIGINT | NOT NULL, DEFAULT 0 | 낙관적 락 버전 |
 | created_at | DATETIME(6) | NOT NULL | 생성일시 |
 | updated_at | DATETIME(6) | NOT NULL | 수정일시 |
 
@@ -65,7 +62,6 @@ CREATE TABLE accounts (
     owner_name VARCHAR(50) NOT NULL,
     balance_won BIGINT NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-    version BIGINT NOT NULL DEFAULT 0,
     created_at DATETIME(6) NOT NULL,
     updated_at DATETIME(6) NOT NULL,
 
@@ -121,7 +117,6 @@ CREATE TABLE account_transaction_entries (
 | usage_date | DATE | PK | 사용 일자 |
 | withdrawal_total_won | BIGINT | NOT NULL, DEFAULT 0 | 당일 출금 합계 |
 | transfer_total_won | BIGINT | NOT NULL, DEFAULT 0 | 당일 이체 합계 |
-| version | BIGINT | NOT NULL, DEFAULT 0 | 낙관적 락 버전 |
 
 - 일 한도 검증 시 거래 내역을 매번 합산하지 않도록, 계좌/일자 단위로 누적 값을 유지한다.
 - PK를 `(account_id, usage_date)`로 두어 upsert(생성/갱신) 흐름을 단순화한다.
@@ -132,7 +127,6 @@ CREATE TABLE daily_usages (
     usage_date DATE NOT NULL,
     withdrawal_total_won BIGINT NOT NULL DEFAULT 0,
     transfer_total_won BIGINT NOT NULL DEFAULT 0,
-    version BIGINT NOT NULL DEFAULT 0,
 
     PRIMARY KEY (account_id, usage_date),
 

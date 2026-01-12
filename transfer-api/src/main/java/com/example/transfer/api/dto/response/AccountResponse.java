@@ -2,6 +2,8 @@ package com.example.transfer.api.dto.response;
 
 import java.time.LocalDateTime;
 
+import com.example.transfer.domain.entity.Account;
+
 import lombok.Builder;
 import lombok.Getter;
 
