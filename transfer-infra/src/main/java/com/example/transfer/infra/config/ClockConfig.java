@@ -1,4 +1,4 @@
-package com.example.transfer.domain.config;
+package com.example.transfer.infra.config;
 
 import java.time.Clock;
 

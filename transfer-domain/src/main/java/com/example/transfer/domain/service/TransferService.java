@@ -3,10 +3,12 @@ package com.example.transfer.domain.service;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.transfer.domain.dto.TransferResult;
+import com.example.transfer.domain.event.TransferCompletedEvent;
 import com.example.transfer.domain.entity.Account;
 import com.example.transfer.domain.entity.AccountTransactionEntry;
 import com.example.transfer.domain.entity.DailyUsage;
@@ -28,6 +30,7 @@ public class TransferService {
 	private final TransferLimitPolicy transferLimitPolicy;
 	private final BalancePolicy balancePolicy;
 	private final FeePolicy feePolicy;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional
 	public TransferResult transfer(Long fromId, Long toId, Long amount) {
@@ -70,6 +73,12 @@ public class TransferService {
 		accountTransactionEntryService.saveTransferIn(toId, amount, fromId, transferId);
 
 		LocalDateTime occurredAt = transferOutEntry.getOccurredAt();
+
+		// 이체 완료 이벤트 발행
+		eventPublisher.publishEvent(new TransferCompletedEvent(
+			transferId, fromId, toId, amount, fee, occurredAt
+		));
+
 		return new TransferResult(transferId, amount, fee, occurredAt);
 	}
 

@@ -1,10 +1,16 @@
 package com.example.transfer.domain.service;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.transfer.domain.entity.Account;
 import com.example.transfer.domain.entity.DailyUsage;
+import com.example.transfer.domain.event.AccountBalanceChangedEvent;
+import com.example.transfer.domain.event.AccountBalanceChangedEvent.ChangeType;
 import com.example.transfer.domain.policy.BalancePolicy;
 import com.example.transfer.domain.policy.WithdrawalLimitPolicy;
 import com.example.transfer.domain.repository.AccountRepository;
@@ -22,6 +28,8 @@ public class AccountCommandService {
 	private final AccountTransactionEntryService accountTransactionEntryService;
 	private final BalancePolicy balancePolicy;
 	private final WithdrawalLimitPolicy withdrawalLimitPolicy;
+	private final ApplicationEventPublisher eventPublisher;
+	private final Clock clock;
 
 	public Account createAccount(String ownerName) {
 		Account account = Account.create(ownerName);
@@ -39,8 +47,16 @@ public class AccountCommandService {
 	public Account deposit(Long accountId, Long amount) {
 		Account account = accountQueryService.findActiveAccountWithLock(accountId);
 
+		Long previousBalance = account.getBalanceWon();
 		account.increaseBalance(amount);
 		accountTransactionEntryService.saveDeposit(accountId, amount);
+
+		// 잔액 변경 이벤트 발행
+		eventPublisher.publishEvent(new AccountBalanceChangedEvent(
+			accountId, ChangeType.DEPOSIT, previousBalance, amount,
+			account.getBalanceWon(), LocalDateTime.now(clock)
+		));
+
 		return account;
 	}
 
@@ -54,12 +70,20 @@ public class AccountCommandService {
 		// 잔액 체크
 		balancePolicy.validate(account.getBalanceWon(), amount);
 
+		Long previousBalance = account.getBalanceWon();
+
 		// 차감
 		account.decreaseBalance(amount);
 		usage.addWithdrawal(amount);
 
 		// 거래 내역 저장
 		accountTransactionEntryService.saveWithdrawal(accountId, amount);
+
+		// 잔액 변경 이벤트 발행
+		eventPublisher.publishEvent(new AccountBalanceChangedEvent(
+			accountId, ChangeType.WITHDRAWAL, previousBalance, amount,
+			account.getBalanceWon(), LocalDateTime.now(clock)
+		));
 
 		return account;
 	}
