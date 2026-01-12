@@ -15,6 +15,7 @@ services:
       - --collation-server=utf8mb4_general_ci
     volumes:
       - mysql-8-data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       interval: 10s
