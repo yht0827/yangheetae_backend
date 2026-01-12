@@ -35,12 +35,23 @@ erDiagram
         BIGINT withdrawal_total_won
         BIGINT transfer_total_won
     }
+
+    IDEMPOTENCY_RECORDS {
+        BIGINT id PK
+        VARCHAR idempotency_key
+        VARCHAR status
+        BINARY transfer_id "NULL"
+        BIGINT amount_won "NULL"
+        BIGINT fee_won "NULL"
+        DATETIME occurred_at "NULL"
+    }
 ```
 
 ## 2. 테이블 상세 설계
 - `accounts`: 계좌의 상태/잔액 관리 (현재 상태)
 - `account_transaction_entries`: 거래 내역 저장 (감사/추적 목적의 원장 로그)
 - `daily_usages`: 일 한도 검증을 위한 일자별 누적 합계
+- `idempotency_records`: Idempotency-Key 기반 중복 실행 방지용 이력
 
 ### 2.1 accounts (계좌)
 
@@ -132,5 +143,34 @@ CREATE TABLE daily_usages (
 
     CONSTRAINT fk_daily_usage_account
         FOREIGN KEY (account_id) REFERENCES accounts(id)
+);
+```
+
+### 2.4 idempotency_records (중복 요청 방지)
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|----------|------|
+| id | BIGINT | PK, AUTO_INCREMENT | 레코드 ID |
+| idempotency_key | VARCHAR(100) | NOT NULL, UNIQUE | 클라이언트 키 |
+| status | VARCHAR(20) | NOT NULL | `IN_PROGRESS`, `COMPLETED` |
+| transfer_id | BINARY(16) | NULL | 완료된 경우 트랜잭션 UUID |
+| amount_won | BIGINT | NULL | 이체 금액 |
+| fee_won | BIGINT | NULL | 수수료 |
+| occurred_at | DATETIME(6) | NULL | 완료 시각 |
+
+- 키가 처음 들어오면 `IN_PROGRESS` 로 INSERT 하고, 처리 완료 후 결과 정보와 함께 `COMPLETED` 로 갱신한다.
+- 이미 완료된 키는 재시도 시 DB 조회만 수행하도록 Unique 제약으로 감싼다.
+
+```sql
+CREATE TABLE idempotency_records (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    idempotency_key VARCHAR(100) NOT NULL UNIQUE,
+    status VARCHAR(20) NOT NULL,
+    transfer_id BINARY(16) NULL,
+    amount_won BIGINT NULL,
+    fee_won BIGINT NULL,
+    occurred_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL
 );
 ```

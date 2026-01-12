@@ -51,7 +51,16 @@ com.example.transfer
     └── config
 ```
 
-## 3. API 응답 규약
+## 3. Idempotency 파이프라인
+
+1. `TransferController` 는 `Idempotency-Key` 요청 헤더를 필수로 받고 `TransferCommandFacade` 에 전달한다.
+2. `TransferCommandFacade` 는 `IdempotencyService` 를 통해 `idempotency_records` 테이블에 키를 INSERT 하며, 이미 완료된 키라면 DB에서 읽어둔 결과를 그대로 반환한다.
+3. 신규 요청인 경우에만 실제 `TransferService` 를 호출해 이체/수수료/거래내역을 기록한다.
+4. 트랜잭션이 성공하면 `IdempotencyService` 가 결과(transferId, amount, fee, occurredAt)를 레코드에 저장하고 이후 동일 키 요청을 차단한다.
+
+이 파이프라인 덕분에 외부 클라이언트가 네트워크 재시도나 브라우저 새로고침을 하더라도 동일 이체가 한 번만 실행된다.
+
+## 4. API 응답 규약
 
 ### 3.1 성공 응답
 
@@ -107,3 +116,9 @@ com.example.transfer
 | 409 | INSUFFICIENT_BALANCE | 잔액이 부족합니다 | 잔액 < 요청금액 |
 | 409 | DAILY_LIMIT_EXCEEDED | 일일 한도를 초과했습니다 | 출금 100만 / 이체 300만 초과 |
 | 409 | CONCURRENT_MODIFICATION | 동시 요청으로 처리에 실패했습니다 | 낙관적 락 충돌 |
+
+## 4. 로컬 인프라 & 실행
+
+- `docker/infra-compose.yml` 은 MySQL 8.0 컨테이너를 띄운다. `docker compose -f docker/infra-compose.yml up -d` 로 개발용 DB를 시작한다.
+- 통합 테스트에서는 H2 in-memory DB를 사용하여 빠른 반복이 가능하다.
+- ApplicationRunner 가 기본 샘플 계좌 세 개를 만든다. 필요 시 `application.yml` 의 데이터소스 프로퍼티를 덮어써 별도 환경에 연결할 수 있다.

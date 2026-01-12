@@ -1,43 +1,77 @@
-# 프로젝트
-- transfer-service API
+# Transfer Service
 
-# 기능 요구사항
-- 계좌 관리 기능
-  - 새로운 계좌를 등록하여 계좌 정보를 생성할 수 있어야 한다.
-  - 기존 계좌를 삭제할 수 있어야 한다.
+간단한 이체 도메인을 중심으로 계좌 관리·입출금·이체 API를 제공하는 Spring Boot 멀티모듈 프로젝트입니다. `transfer-domain`에 비즈니스 규칙을 두고, `transfer-infra` 가 영속성 구현체를, `transfer-api` 가 REST 엔드포인트를 담당합니다.
 
-- 입금 기능
-  - 특정 계좌에 금액을 입금하여 잔액을 증가시킬 수 있어야 한다.
-  - 입금 내역은 거래내역으로 저장되어야 한다.
+## 기술 스택
+- Java 21 (Amazon Corretto)
+- Spring Boot 3.5.10-SNAPSHOT + Spring Data JPA
+- Gradle 멀티모듈 구성 (`api`, `domain`, `infra`)
+- MySQL 8.0 (Docker Compose) / 테스트용 H2
 
-- 출금 기능
-  - 특정 계좌에서 금액을 출금하여 잔액을 감소시킬 수 있어야 한다.
-  - 출금 시 잔액이 부족하면 출금이 실패해야 한다.
-  - 출금 내역은 거래내역으로 저장되어야 한다.
-  - 일 한도: 1일 최대 1,000,000원
+## 빠르게 실행하기
+1. Docker Desktop과 Docker Compose가 설치되어 있어야 합니다.
+2. MySQL 8.0 인프라 기동:
+   ```bash
+   docker compose -f docker/infra-compose.yml up -d
+   ```
+3. 애플리케이션 실행 (JDK 21 기준):
+   ```bash
+   ./gradlew :transfer-api:bootRun
+   ```
+4. 종료 시에는 `Ctrl+C` 후 `docker compose -f docker/infra-compose.yml down` 으로 리소스를 정리합니다.
 
-- 이체 기능
-  - 출금 계좌에서 다른 계좌로 금액을 이체할 수 있어야 한다.
-  - 이체 시 출금 계좌 잔액은 이체 금액 + 수수료 만큼 감소해야 한다.
-  - 이체 시 수취 계좌 잔액은 이체 금액 만큼 증가해야 한다.
-  - 이체 금액의 1%를 수수료로 부과해야 한다.
-  - 이체 내역은 송금/수취 내역으로 거래내역에 저장되어야 한다.
-  - 일 한도: 1일 최대 3,000,000원
+## API 문서 / Swagger
+- 애플리케이션이 기동되면 `http://localhost:8080/swagger-ui.html` 에서 OpenAPI 문서를 확인하고 바로 호출할 수 있습니다.
 
-- 거래내역 조회 기능
-  - 지정된 계좌의 입금/출금/이체(송금/수취) 내역을 조회할 수 있어야 한다.
-  - 거래내역은 최신순으로 정렬되어 반환되어야 한다.
-  - 페이징 또는 기간 필터를 제공할 수 있다.
+## 샘플 API 호출
+```bash
+# 1) 계좌 생성
+curl -X POST http://localhost:8080/accounts \
+  -H 'Content-Type: application/json' \
+  -d '{"ownerName":"홍길동"}'
 
-# 작업 목록
+# 2) 특정 계좌 조회
+curl http://localhost:8080/accounts/1
 
-EPIC: TS-0
-- TS-1: 시스템 디자인
-- TS-2: 요구사항 / API 명세 작성
-- TS-3: 멀티모듈 구성
-- TS-4: 계좌 기능 구현
-- TS-5: 거래 기능 구현
-- TS-6: 동시성/정합성 강화
-- TS-7: 테스트 작성
-- TS-8: Docker / 배포 환경 구성
-- TS-9: 문서/마감 정리
+# 3) 입금
+curl -X POST http://localhost:8080/accounts/1/deposit \
+  -H 'Content-Type: application/json' \
+  -d '{"amountWon":500000}'
+
+# 4) 출금
+curl -X POST http://localhost:8080/accounts/1/withdraw \
+  -H 'Content-Type: application/json' \
+  -d '{"amountWon":100000}'
+
+# 5) 이체 (Idempotency-Key 필수)
+curl -X POST http://localhost:8080/transfers \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: transfer-20240101-0001' \
+  -d '{"fromAccountId":1,"toAccountId":2,"amountWon":200000}'
+
+# 6) 거래내역 조회
+curl http://localhost:8080/accounts/1/transactions
+```
+
+## 정책 요약
+- 출금 일일 한도: `1,000,000원`
+- 이체 일일 한도: `3,000,000원`
+- 이체 수수료: `금액의 1% (원 단위 절사)`
+- 모든 이체 요청은 `Idempotency-Key` 헤더를 강제해 중복 실행을 막습니다.
+
+## 동시성 처리 방식
+- **Pessimistic Lock:** `SELECT ... FOR UPDATE` 기반으로 계좌 레코드를 잠궈 잔액 정합성을 확보합니다.
+- **데드락 방지:** 이체 시 두 계좌의 ID를 정렬해 “작은 ID → 큰 ID” 순으로 항상 락을 획득합니다.
+- **테스트:** 동시 입출금/이체에 대한 통합 테스트(`transfer-infra` 모듈)와 API 단의 E2E 테스트로 락 전략을 지속 검증합니다.
+
+## 테스트 실행
+1. 로컬 JDK가 21로 지정돼야 합니다. (예: `export JAVA_HOME=$(/usr/libexec/java_home -v 21)`)
+2. 전체 테스트: `./gradlew clean test`
+   - 모듈별 실행: `./gradlew transfer-domain:test`, `./gradlew transfer-infra:test`, `./gradlew transfer-api:test`
+
+## 프로젝트 문서
+- `docs/01-requirements.md`: 기능 요구사항과 남은 TODO
+- `docs/02-model.md`: ERD 및 스키마 상세
+- `docs/03-architecture.md`: 모듈 구조, 락/정합성 전략, 테스트 전략
+
+추가적인 설계/진행 상황은 `docs` 폴더를 참고하세요.
