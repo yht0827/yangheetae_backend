@@ -9,4 +9,6 @@ public interface TransactionEntryRepository {
 	AccountTransactionEntry save(AccountTransactionEntry entry);
 
 	List<AccountTransactionEntry> findByAccountIdOrderByOccurredAtDesc(Long accountId);
+
+	Long sumFees(Long accountId, java.time.LocalDateTime from, java.time.LocalDateTime to);
 }
