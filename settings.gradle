@@ -5,3 +5,7 @@ pluginManagement {
     }
 }
 rootProject.name = 'transfer-service'
+
+include 'transfer-api'
+include 'transfer-domain'
+include 'transfer-infra'
