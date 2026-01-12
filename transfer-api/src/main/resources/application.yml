@@ -1,30 +1,39 @@
 spring:
   application:
     name: transfer-service
-
-  datasource:
-    url: jdbc:mysql://localhost:3306/transfer?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-    username: application
-    password: application
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
   jpa:
+    open-in-view: false
+    generate-ddl: false
+    show-sql: false
     hibernate:
-      ddl-auto: create
-    show-sql: true
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
-
-  h2:
-    console:
-      enabled: false
+        highlight_sql: true
+        default_batch_fetch_size: 100
+        timezone.default_storage: NORMALIZE_UTC
+        jdbc.time_zone: UTC
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:transfer}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USER:application}
+    password: ${MYSQL_PASSWORD:application}
+    hikari:
+      pool-name: mysql-main-pool
+      maximum-pool-size: 40
+      minimum-idle: 30
+      connection-timeout: 3000
+      validation-timeout: 5000
+      keepalive-time: 0
+      max-lifetime: 1800000
+      leak-detection-threshold: 0
+      data-source-properties:
+        rewriteBatchedStatements: true
 
 server:
   port: 8080
 
-# Swagger UI
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -32,4 +41,3 @@ springdoc:
     operations-sorter: alpha
   api-docs:
     path: /api-docs
-
