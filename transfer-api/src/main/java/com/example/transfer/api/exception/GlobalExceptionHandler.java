@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.example.transfer.api.dto.response.ErrorResponse;
 import com.example.transfer.domain.exception.AccountNotFoundException;
 import com.example.transfer.domain.exception.DailyLimitExceededException;
+import com.example.transfer.domain.exception.IdempotentRequestInProgressException;
 import com.example.transfer.domain.exception.InsufficientBalanceException;
 import com.example.transfer.domain.exception.SameAccountTransferException;
 
@@ -34,6 +35,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(SameAccountTransferException.class)
 	public ResponseEntity<ErrorResponse> handleSameAccountTransfer(SameAccountTransferException e) {
 		return createErrorResponse(ErrorCode.SAME_ACCOUNT_TRANSFER);
+	}
+
+	@ExceptionHandler(IdempotentRequestInProgressException.class)
+	public ResponseEntity<ErrorResponse> handleIdempotentInProgress(IdempotentRequestInProgressException e) {
+		return createErrorResponse(ErrorCode.IDEMPOTENT_REQUEST_IN_PROGRESS);
 	}
 
 	private ResponseEntity<ErrorResponse> createErrorResponse(ErrorCode errorCode) {

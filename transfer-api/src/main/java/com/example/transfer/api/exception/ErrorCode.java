@@ -19,7 +19,8 @@ public enum ErrorCode {
 	// 409 Conflict
 	INSUFFICIENT_BALANCE(HttpStatus.CONFLICT, "잔액이 부족합니다"),
 	DAILY_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "일일 한도를 초과했습니다"),
-	CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "동시 요청으로 처리에 실패했습니다");
+	CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "동시 요청으로 처리에 실패했습니다"),
+	IDEMPOTENT_REQUEST_IN_PROGRESS(HttpStatus.CONFLICT, "동일한 요청이 처리 중입니다");
 
 	private final HttpStatus status;
 	private final String message;
