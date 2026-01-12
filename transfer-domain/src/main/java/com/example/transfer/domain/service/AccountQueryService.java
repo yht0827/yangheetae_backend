@@ -39,7 +39,11 @@ public class AccountQueryService {
 	}
 
 	public Account findActiveAccountWithLock(Long accountId) {
-		return accountRepository.findByIdWithLock(accountId)
+		Account account = accountRepository.findByIdWithLock(accountId)
 			.orElseThrow(() -> new AccountNotFoundException("계좌를 찾을 수 없습니다"));
+		if (!account.isActive()) {
+			throw new AccountNotFoundException("계좌를 찾을 수 없습니다");
+		}
+		return account;
 	}
 }

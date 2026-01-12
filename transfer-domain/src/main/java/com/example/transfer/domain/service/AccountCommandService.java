@@ -1,18 +1,13 @@
 package com.example.transfer.domain.service;
 
-import java.time.LocalDate;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.transfer.domain.entity.Account;
-import com.example.transfer.domain.entity.AccountTransactionEntry;
 import com.example.transfer.domain.entity.DailyUsage;
 import com.example.transfer.domain.policy.BalancePolicy;
 import com.example.transfer.domain.policy.WithdrawalLimitPolicy;
 import com.example.transfer.domain.repository.AccountRepository;
-import com.example.transfer.domain.repository.DailyUsageRepository;
-import com.example.transfer.domain.repository.TransactionEntryRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,8 +18,8 @@ public class AccountCommandService {
 
 	private final AccountQueryService accountQueryService;
 	private final AccountRepository accountRepository;
-	private final DailyUsageRepository dailyUsageRepository;
-	private final TransactionEntryRepository transactionEntryRepository;
+	private final DailyUsageService dailyUsageService;
+	private final AccountTransactionEntryService accountTransactionEntryService;
 	private final BalancePolicy balancePolicy;
 	private final WithdrawalLimitPolicy withdrawalLimitPolicy;
 
@@ -45,17 +40,13 @@ public class AccountCommandService {
 		Account account = accountQueryService.findActiveAccountWithLock(accountId);
 
 		account.increaseBalance(amount);
-
-		// 입금
-		AccountTransactionEntry deposit = AccountTransactionEntry.createDeposit(accountId, amount);
-		transactionEntryRepository.save(deposit);
-
+		accountTransactionEntryService.saveDeposit(accountId, amount);
 		return account;
 	}
 
 	public Account withdraw(Long accountId, Long amount) {
 		Account account = accountQueryService.findActiveAccountWithLock(accountId);
-		DailyUsage usage = getOrCreateDailyUsage(accountId, LocalDate.now());
+		DailyUsage usage = dailyUsageService.getOrCreateToday(accountId);
 
 		// 한도 체크
 		withdrawalLimitPolicy.validate(usage.getWithdrawalTotalWon(), amount);
@@ -67,15 +58,9 @@ public class AccountCommandService {
 		account.decreaseBalance(amount);
 		usage.addWithdrawal(amount);
 
-		// 출금
-		AccountTransactionEntry withdrawal = AccountTransactionEntry.createWithdrawal(accountId, amount);
-		transactionEntryRepository.save(withdrawal);
+		// 거래 내역 저장
+		accountTransactionEntryService.saveWithdrawal(accountId, amount);
 
 		return account;
-	}
-
-	private DailyUsage getOrCreateDailyUsage(Long accountId, LocalDate date) {
-		return dailyUsageRepository.findByAccountIdAndUsageDateWithLock(accountId, date)
-			.orElseGet(() -> dailyUsageRepository.save(DailyUsage.create(accountId, date)));
 	}
 }

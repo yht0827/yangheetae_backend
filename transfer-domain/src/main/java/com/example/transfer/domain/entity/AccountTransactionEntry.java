@@ -35,10 +35,10 @@ public class AccountTransactionEntry extends BaseTimeEntity {
 	@Column(nullable = false)
 	private Long amountWon;
 
-	private Long counterpartyAccountId;
+	private Long counterpartyAccountId; // 이체 상대 계좌
 
 	@Column(columnDefinition = "BINARY(16)")
-	private UUID relatedTransferId;
+	private UUID relatedTransferId; // 이체 묶음 ID
 
 	@Column(nullable = false)
 	private LocalDateTime occurredAt;
