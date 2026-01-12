@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "account_transaction_entries")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class AccountTransactionEntry {
+public class AccountTransactionEntry extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,7 +43,31 @@ public class AccountTransactionEntry {
 	@Column(nullable = false)
 	private LocalDateTime occurredAt;
 
-	public static AccountTransactionEntry create(
+	public static AccountTransactionEntry createDeposit(Long accountId, Long amount) {
+		return create(accountId, TransactionType.DEPOSIT, amount, null, null);
+	}
+
+	public static AccountTransactionEntry createWithdrawal(Long accountId, Long amount) {
+		return create(accountId, TransactionType.WITHDRAWAL, amount, null, null);
+	}
+
+	public static AccountTransactionEntry createTransferOut(
+		Long accountId, Long amount, Long counterpartyAccountId, UUID transferId
+	) {
+		return create(accountId, TransactionType.TRANSFER_OUT, amount, counterpartyAccountId, transferId);
+	}
+
+	public static AccountTransactionEntry createTransferIn(
+		Long accountId, Long amount, Long counterpartyAccountId, UUID transferId
+	) {
+		return create(accountId, TransactionType.TRANSFER_IN, amount, counterpartyAccountId, transferId);
+	}
+
+	public static AccountTransactionEntry createFee(Long accountId, Long amount, UUID transferId) {
+		return create(accountId, TransactionType.FEE, amount, null, transferId);
+	}
+
+	private static AccountTransactionEntry create(
 		Long accountId,
 		TransactionType type,
 		Long amountWon,
