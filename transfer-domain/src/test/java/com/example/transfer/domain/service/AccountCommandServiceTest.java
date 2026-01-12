@@ -65,8 +65,8 @@ class AccountCommandServiceTest {
 
 	@BeforeEach
 	void setUpClock() {
-		when(clock.instant()).thenReturn(FIXED_INSTANT);
-		when(clock.getZone()).thenReturn(ASIA_SEOUL);
+		lenient().when(clock.instant()).thenReturn(FIXED_INSTANT);
+		lenient().when(clock.getZone()).thenReturn(ASIA_SEOUL);
 	}
 
 	@Test

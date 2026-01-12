@@ -59,7 +59,7 @@ class TransferServiceTest {
 
 	@BeforeEach
 	void setUpTransactionMocks() {
-		when(accountTransactionEntryService.saveTransferOut(anyLong(), anyLong(), anyLong(), any(UUID.class)))
+		lenient().when(accountTransactionEntryService.saveTransferOut(anyLong(), anyLong(), anyLong(), any(UUID.class)))
 			.thenAnswer(invocation -> AccountTransactionEntry.createTransferOut(
 				invocation.getArgument(0),
 				invocation.getArgument(1),
