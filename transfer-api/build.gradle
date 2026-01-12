@@ -1,0 +1,8 @@
+bootJar.enabled = true
+jar.enabled = true
+
+dependencies {
+    implementation project(':transfer-domain')
+    implementation project(':transfer-infra')
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
+}

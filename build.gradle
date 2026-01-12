@@ -1,30 +1,48 @@
 plugins {
+    id 'org.springframework.boot' version '3.5.10-SNAPSHOT' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
     id 'java'
-    id 'org.springframework.boot' version '3.5.10-SNAPSHOT'
-    id 'io.spring.dependency-management' version '1.1.7'
 }
 
-group = 'com.example'
-version = '0.0.1-SNAPSHOT'
-description = 'transfer-service'
+allprojects {
+    group = 'com.example'
+    version = '0.0.1-SNAPSHOT'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+    repositories {
+        mavenCentral()
+        maven { url = 'https://repo.spring.io/snapshot' }
     }
 }
 
-repositories {
-    mavenCentral()
-    maven { url = 'https://repo.spring.io/snapshot' }
-}
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
 
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
 
-tasks.named('test') {
-    useJUnitPlatform()
+    dependencies {
+
+        // Spring
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+
+        // Lombok
+        implementation 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+
+        // Test
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+
+    bootJar { enabled = false }
+    jar { enabled = false }
 }
