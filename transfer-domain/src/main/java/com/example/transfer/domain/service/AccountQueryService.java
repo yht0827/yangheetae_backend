@@ -46,4 +46,13 @@ public class AccountQueryService {
 		}
 		return account;
 	}
+
+	public Account findActiveAccountByAccountNo(String accountNo) {
+		return accountRepository.findActiveByAccountNo(accountNo)
+			.orElseThrow(() -> new AccountNotFoundException("계좌를 찾을 수 없습니다"));
+	}
+
+	public Long resolveAccountId(String accountNo) {
+		return findActiveAccountByAccountNo(accountNo).getId();
+	}
 }

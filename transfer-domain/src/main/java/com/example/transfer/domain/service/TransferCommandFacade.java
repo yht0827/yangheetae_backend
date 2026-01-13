@@ -12,8 +12,11 @@ public class TransferCommandFacade {
 
 	private final TransferService transferService;
 	private final IdempotencyService idempotencyService;
+	private final AccountQueryService accountQueryService;
 
-	public TransferResult transfer(Long fromId, Long toId, Long amount, String idempotencyKey) {
+	public TransferResult transfer(String fromAccountNo, String toAccountNo, Long amount, String idempotencyKey) {
+		Long fromId = accountQueryService.resolveAccountId(fromAccountNo);
+		Long toId = accountQueryService.resolveAccountId(toAccountNo);
 		return idempotencyService.execute(idempotencyKey, () -> transferService.transfer(fromId, toId, amount));
 	}
 }

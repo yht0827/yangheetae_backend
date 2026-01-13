@@ -22,4 +22,11 @@ public interface AccountJpaRepository extends JpaRepository<Account, Long>, Acco
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("SELECT a FROM Account a WHERE a.id = :id AND a.status = 'ACTIVE'")
 	Optional<Account> findByIdWithLock(@Param("id") Long id);
+
+	@Override
+	Optional<Account> findByAccountNo(String accountNo);
+
+	@Override
+	@Query("SELECT a FROM Account a WHERE a.accountNo = :accountNo AND a.status = 'ACTIVE'")
+	Optional<Account> findActiveByAccountNo(@Param("accountNo") String accountNo);
 }

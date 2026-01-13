@@ -33,8 +33,8 @@ public class TransferController {
 		@RequestHeader("Idempotency-Key") String idempotencyKey,
 		@Valid @RequestBody TransferRequest request) {
 		TransferResult result = transferCommandFacade.transfer(
-			request.getFromAccountId(),
-			request.getToAccountId(),
+			request.getFromAccountNo(),
+			request.getToAccountNo(),
 			request.getAmountWon(),
 			idempotencyKey
 		);

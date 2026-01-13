@@ -13,4 +13,8 @@ public interface AccountRepository {
 	Optional<Account> findActiveById(Long id);
 
 	Optional<Account> findByIdWithLock(Long id);
+
+	Optional<Account> findByAccountNo(String accountNo);
+
+	Optional<Account> findActiveByAccountNo(String accountNo);
 }

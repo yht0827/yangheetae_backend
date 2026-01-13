@@ -1,7 +1,9 @@
 package com.example.transfer.api.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,13 +13,15 @@ import lombok.NoArgsConstructor;
 @Schema(name = "TransferRequest", description = "이체 요청 바디")
 public class TransferRequest {
 
-	@NotNull
-	@Schema(description = "출금 계좌 ID", example = "1001")
-	private Long fromAccountId;
+	@NotBlank
+	@Pattern(regexp = "\\d{3}-\\d{4}-\\d{6}", message = "계좌번호 형식이 올바르지 않습니다")
+	@Schema(description = "출금 계좌번호", example = "110-1234-567890")
+	private String fromAccountNo;
 
-	@NotNull
-	@Schema(description = "입금 계좌 ID", example = "2001")
-	private Long toAccountId;
+	@NotBlank
+	@Pattern(regexp = "\\d{3}-\\d{4}-\\d{6}", message = "계좌번호 형식이 올바르지 않습니다")
+	@Schema(description = "입금 계좌번호", example = "110-5678-123456")
+	private String toAccountNo;
 
 	@NotNull
 	@Positive

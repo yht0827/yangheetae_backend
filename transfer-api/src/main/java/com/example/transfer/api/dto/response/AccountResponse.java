@@ -13,8 +13,8 @@ import lombok.Getter;
 @Schema(name = "AccountResponse", description = "계좌 정보")
 public class AccountResponse {
 
-	@Schema(description = "계좌 ID", example = "1001")
-	private Long id;
+	@Schema(description = "계좌번호", example = "110-1234-567890")
+	private String accountNo;
 
 	@Schema(description = "계좌 소유자 이름", example = "홍길동")
 	private String ownerName;
@@ -30,7 +30,7 @@ public class AccountResponse {
 
 	public static AccountResponse from(Account account) {
 		return AccountResponse.builder()
-			.id(account.getId())
+			.accountNo(account.getAccountNo())
 			.ownerName(account.getOwnerName())
 			.balanceWon(account.getBalanceWon())
 			.status(account.getStatus().name())

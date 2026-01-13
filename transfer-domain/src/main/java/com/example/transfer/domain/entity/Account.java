@@ -1,5 +1,7 @@
 package com.example.transfer.domain.entity;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 import com.example.transfer.domain.exception.InsufficientBalanceException;
 
 import jakarta.persistence.Column;
@@ -24,6 +26,9 @@ public class Account extends BaseTimeEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	@Column(nullable = false, unique = true, length = 20)
+	private String accountNo;
+
 	@Column(nullable = false, length = 50)
 	private String ownerName;
 
@@ -38,10 +43,19 @@ public class Account extends BaseTimeEntity {
 		validateOwnerName(ownerName);
 
 		Account account = new Account();
+		account.accountNo = generateAccountNo();
 		account.ownerName = ownerName;
 		account.balanceWon = 0L;
 		account.status = AccountStatus.ACTIVE;
 		return account;
+	}
+
+	private static String generateAccountNo() {
+		ThreadLocalRandom random = ThreadLocalRandom.current();
+		int part1 = random.nextInt(100, 1000);       // 3자리
+		int part2 = random.nextInt(1000, 10000);     // 4자리
+		int part3 = random.nextInt(100000, 1000000); // 6자리
+		return String.format("%03d-%04d-%06d", part1, part2, part3);
 	}
 
 	public void increaseBalance(Long amount) {

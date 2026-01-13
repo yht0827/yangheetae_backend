@@ -2,11 +2,13 @@
 CREATE TABLE accounts
 (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    account_no  VARCHAR(20) NOT NULL,
     owner_name  VARCHAR(50) NOT NULL,
     balance_won BIGINT      NOT NULL DEFAULT 0,
     status      VARCHAR(20) NOT NULL,
     created_at  DATETIME(6) NOT NULL,
-    updated_at  DATETIME(6) NOT NULL
+    updated_at  DATETIME(6) NOT NULL,
+    UNIQUE KEY uk_account_no (account_no)
 );
 
 -- daily_usages (composite key)
