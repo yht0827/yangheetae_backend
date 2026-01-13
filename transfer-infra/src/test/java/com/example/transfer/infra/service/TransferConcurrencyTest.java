@@ -136,4 +136,91 @@ class TransferConcurrencyTest extends IntegrationTestSupport {
 		assertThat(senderAfter.getBalanceWon() + receiverAfter.getBalanceWon() + totalFee)
 			.isEqualTo(5_000_000L);
 	}
+
+	@Test
+	@DisplayName("A에서 B로 100명이 동시에 1만원씩 송금하면 잔액과 거래 내역이 정확히 반영된다")
+	void hundredConcurrentTransfers_balanceAndEntriesAreConsistent() throws InterruptedException {
+		// given
+		// 1만원 송금 시 수수료 = floor(10,000 * 0.01) = 100원
+		// 100건 송금 시 총 차감 = (10,000 + 100) × 100 = 1,010,000원
+		long transferAmount = 10_000L;
+		long feePerTransfer = feePolicy.calculate(transferAmount);
+		int workerCount = 100;
+		long totalDeduction = (transferAmount + feePerTransfer) * workerCount;
+
+		Account sender = accountCommandService.createAccount("100명송금-보내는이");
+		Account receiver = accountCommandService.createAccount("100명송금-받는이");
+		accountCommandService.deposit(sender.getId(), totalDeduction); // 정확히 필요한 금액
+		accountCommandService.deposit(receiver.getId(), 1_000_000L);   // 초기 잔액 100만원
+
+		ExecutorService executor = Executors.newFixedThreadPool(workerCount);
+		CountDownLatch ready = new CountDownLatch(workerCount);
+		CountDownLatch start = new CountDownLatch(1);
+		CountDownLatch done = new CountDownLatch(workerCount);
+		AtomicInteger successCount = new AtomicInteger();
+		AtomicInteger failedCount = new AtomicInteger();
+
+		// when - 100명이 동시에 1만원씩 송금
+		for (int i = 0; i < workerCount; i++) {
+			executor.submit(() -> {
+				ready.countDown();
+				try {
+					start.await();
+					transferService.transfer(sender.getId(), receiver.getId(), transferAmount);
+					successCount.incrementAndGet();
+				} catch (DailyLimitExceededException | InsufficientBalanceException e) {
+					failedCount.incrementAndGet();
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				} finally {
+					done.countDown();
+				}
+			});
+		}
+
+		ready.await(5, TimeUnit.SECONDS);
+		start.countDown();
+		done.await(30, TimeUnit.SECONDS);
+		executor.shutdownNow();
+
+		// then
+		Account senderAfter = accountQueryService.getAccount(sender.getId());
+		Account receiverAfter = accountQueryService.getAccount(receiver.getId());
+
+		// 일일 이체 한도 300만원, 100건 × 1만원 = 100만원 < 한도 내이므로 모두 성공해야 함
+		assertThat(successCount.get()).isEqualTo(workerCount);
+		assertThat(failedCount.get()).isZero();
+
+		// A는 0원 (정확히 필요한 금액만 입금했으므로)
+		assertThat(senderAfter.getBalanceWon()).isZero();
+
+		// B는 200만원 (초기 100만원 + 받은 100만원)
+		assertThat(receiverAfter.getBalanceWon()).isEqualTo(1_000_000L + transferAmount * workerCount);
+
+		// 거래 내역 검증 - 중복 생성 없음
+		List<AccountTransactionEntry> senderEntries = transactionEntryRepository
+			.findByAccountIdOrderByOccurredAtDesc(sender.getId());
+		List<AccountTransactionEntry> receiverEntries = transactionEntryRepository
+			.findByAccountIdOrderByOccurredAtDesc(receiver.getId());
+
+		long transferOutCount = senderEntries.stream()
+			.filter(e -> e.getType() == TransactionType.TRANSFER_OUT)
+			.count();
+		long feeCount = senderEntries.stream()
+			.filter(e -> e.getType() == TransactionType.FEE)
+			.count();
+		long transferInCount = receiverEntries.stream()
+			.filter(e -> e.getType() == TransactionType.TRANSFER_IN)
+			.count();
+
+		// 거래 내역 수 = 송금 성공 횟수
+		assertThat(transferOutCount).isEqualTo(workerCount);
+		assertThat(feeCount).isEqualTo(workerCount);
+		assertThat(transferInCount).isEqualTo(workerCount);
+
+		// 총 금액 보존 확인 (A + B + 수수료 = 초기 총액)
+		long totalFee = feePerTransfer * workerCount;
+		assertThat(senderAfter.getBalanceWon() + receiverAfter.getBalanceWon() + totalFee)
+			.isEqualTo(totalDeduction + 1_000_000L);
+	}
 }
