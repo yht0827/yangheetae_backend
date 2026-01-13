@@ -12,6 +12,7 @@ erDiagram
 
     ACCOUNTS {
         BIGINT id PK
+        VARCHAR account_no UK
         VARCHAR owner_name
         BIGINT balance_won
         VARCHAR status
@@ -58,24 +59,28 @@ erDiagram
 | 컬럼 | 타입 | 제약조건 | 설명 |
 |------|------|----------|------|
 | id | BIGINT | PK, AUTO_INCREMENT | 계좌 ID |
+| account_no | VARCHAR(20) | NOT NULL, UNIQUE | 계좌번호 (XXX-XXXX-XXXXXX) |
 | owner_name | VARCHAR(50) | NOT NULL | 소유자명 |
 | balance_won | BIGINT | NOT NULL, DEFAULT 0 | 잔액(원) |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'ACTIVE' | ACTIVE / DELETED |
 | created_at | DATETIME(6) | NOT NULL | 생성일시 |
 | updated_at | DATETIME(6) | NOT NULL | 수정일시 |
 
+- `account_no`는 계좌 생성 시 자동으로 발급되는 고유 계좌번호이다 (형식: `XXX-XXXX-XXXXXX`).
 - `status`는 soft delete를 위한 필드이며, 실제 삭제 대신 `DELETED`로 변경한다.
 - 잔액은 `BIGINT`(원 단위)로 관리한다.
 
 ```sql
 CREATE TABLE accounts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    account_no VARCHAR(20) NOT NULL,
     owner_name VARCHAR(50) NOT NULL,
     balance_won BIGINT NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME(6) NOT NULL,
     updated_at DATETIME(6) NOT NULL,
 
+    UNIQUE KEY uk_account_no (account_no),
     INDEX idx_accounts_status (status)
 );
 ```
